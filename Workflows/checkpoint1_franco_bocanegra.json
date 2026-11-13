@@ -1,0 +1,237 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "7a926abd-7e9a-4e9d-9d6c-e512194b578f",
+      "name": "When chat message received",
+      "webhookId": "e59d40ee-d889-441b-9478-feb709ee8cdb"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        32,
+        224
+      ],
+      "id": "c0c0e125-b8bd-4516-9a64-6d0b2b5a32c9",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "kJBvBYMQHUuFT1BJ",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Fecha y hora actual de Argentina: {{ $now.setZone('America/Argentina/Buenos_Aires').toFormat('yyyy-MM-dd HH:mm:ss') }}\n\nSolicitud del usuario: {{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "Sos un Coordinador Inteligente de Agenda.\nRol:Asistir al usuario en la organización de reuniones y eventos mediante Google Calendar.\nObjetivo:Interpretar solicitudes en lenguaje natural, consultar la agenda, verificar \ndisponibilidad y crear eventos cuando corresponda.\nReglas de comportamiento:\nSolicitálos datos necesarios si la petición está incompleta: título, fecha, hora y duración.\nAntes de crear cualquier evento, consultála agenda para verificar que no exista un \nconflicto.\nSi existe un conflicto, informáal usuario y solicitáotro horario.\nNunca inventes fechas, horarios ni datos de reuniones.\nInterpretálas fechas y horas utilizando la zona horaria de Argentina (GMT-03:00).\nNo crees eventos sin confirmación de los datos necesarios.\nRespondésiempre en español, de manera clara y cordial.\nRestricciones:No modifiques ni elimines eventos existentes. No compartas información \nprivada de otros eventos",
+          "maxIterations": 5
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        192,
+        -16
+      ],
+      "id": "17585084-87b5-4f77-8f2d-9cf51d6c9d73",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Crear eventos en el calendario Agent IA únicamente cuando el usuario haya confirmado el título, la fecha, la hora y la duración. Antes de crear el evento, utilizar la herramienta de consulta de Google Calendar para comprobar si existen conflictos. Si el horario está ocupado, no crear el evento. Utilizar la zona horaria America/Argentina/Buenos_Aires. No inventar información faltante ni crear eventos duplicados.",
+        "calendar": {
+          "__rl": true,
+          "value": "f1aa65a6ea2d8c62bae142ce7927005c5776c154349e91ee2829624cdc47db49@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Agent IA"
+        },
+        "start": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Start', ``, 'string') }}",
+        "end": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('End', ``, 'string') }}",
+        "additionalFields": {
+          "summary": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Summary', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        464,
+        336
+      ],
+      "id": "245cc799-1b5a-4fae-b92f-f47750efd75a",
+      "name": "Create an event in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ln7hyrWQm2SSqWn1",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Consultar los eventos existentes en el calendario Agent IA de Google Calendar. Utilizar esta herramienta cuando el usuario solicite conocer sus reuniones o verificar la disponibilidad de un horario. Antes de crear cualquier evento, consultar el intervalo completo solicitado para detectar conflictos. Si existe un evento que se superpone con el horario solicitado, informar al usuario y no crear la reunión. Interpretar las fechas usando la zona horaria America/Argentina/Buenos_Aires. No inventar resultados ni modificar eventos existentes.",
+        "operation": "getAll",
+        "calendar": {
+          "__rl": true,
+          "value": "f1aa65a6ea2d8c62bae142ce7927005c5776c154349e91ee2829624cdc47db49@group.calendar.google.com",
+          "mode": "list",
+          "cachedResultName": "Agent IA"
+        },
+        "timeMin": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('After', ``, 'string') }}",
+        "timeMax": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Before', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleCalendarTool",
+      "typeVersion": 1.3,
+      "position": [
+        336,
+        352
+      ],
+      "id": "4c07a1ff-1ec0-4100-a4d6-f99971dc77ea",
+      "name": "Get many events in Google Calendar",
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ln7hyrWQm2SSqWn1",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Enviar un correo electrónico de confirmación al usuario únicamente después de que se haya creado correctamente una reunión en Google Calendar y el usuario haya autorizado el envío. El correo debe incluir el título de la reunión, la fecha, el horario de inicio y el horario de finalización. No utilizar esta herramienta para consultar eventos, verificar disponibilidad ni comunicar conflictos de horario. Si la creación de la reunión falla, no enviar el correo.",
+        "sendTo": "franqoo27@gmail.com",
+        "subject": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Subject', ``, 'string') }}",
+        "emailType": "text",
+        "message": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Message', ``, 'string') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTool",
+      "typeVersion": 2.2,
+      "position": [
+        608,
+        320
+      ],
+      "id": "aadf8271-8be1-4438-937d-772ac1228b9e",
+      "name": "Send a message in Gmail",
+      "webhookId": "d6eba724-550d-4c30-8413-ac4cd64ec89b",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "bkKUdoGrPyeXBcoq",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        208,
+        224
+      ],
+      "id": "6488ad0d-72f3-4108-b69f-ed5c7739acb3",
+      "name": "Simple Memory"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create an event in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many events in Google Calendar": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message in Gmail": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a53c6809-a75a-49f3-85b0-2fa3f6309eb6",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8b98d052bd71be1d696b66f83d1808ad01948745327c2c8b2e091cbb48931ae0"
+  },
+  "id": "t4xsl7bZd8NZeDjd",
+  "tags": []
+}
